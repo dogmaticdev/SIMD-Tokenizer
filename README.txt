@@ -1,6 +1,8 @@
 Assembly Tokenizer that can parse more than 1 gigabytes of ascii per second.
 I didn't bother making a multi-threaded version, because this is already like 10-50 times faster than everything else.
 
+More specifically, it takes inputted text, removes whitespace, and seperates strings with a null terminator.
+
 stats:
 10448 bytes in 11302 nano seconds
 10448 ÷ 0.000011302 = 923620933.5 bytes, or 923mb/s
