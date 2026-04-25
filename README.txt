@@ -4,16 +4,16 @@ I didn't bother making a multi-threaded version, because this is already like 10
 More specifically, it takes inputted text, removes whitespace, and seperates strings with a null terminator.
 
 stats:
-10448 bytes in 11302 nano seconds
-10448 ÷ 0.000011302 = 923620933.5 bytes, or 923mb/s
+12052 bytes in 11951 nano seconds
+10448 ÷ 0.000011302 = 1008451175.6 bytes, or 1.00gb/s
 
-31346 bytes in 32241 nano seconds 
-31346 ÷ 0.000032241 = 972240315.1 bytes, or 972mb/s
+31346 bytes in 27334 nano seconds 
+31346 ÷ 0.000032241 = 1146776907.8 bytes, or 1.14gb/s
 
 These stats are taken from my Ryzen 7 3700X 8-core processor that I got off ebay for like 60 bucks.
-As you can probably notice there is a very obvious increase in its speed, and it will most certainly cross 1gb/s or one byte per nano second. If pushed to such extents.
+As you can probably notice there is a very obvious increase in its speed, and it will most certainly cross 1.5gb/s If pushed to such extents.
 
-It currently only works on linux, I won't be updating it any time soon.
+It currently only works on linux, I won't be making it cross platform any time soon.
 
 To build get nasm and run:
 nasm -f elf64 tokenizer.asm -o tokenizer.o && ld tokenizer.o -o tokenizer
