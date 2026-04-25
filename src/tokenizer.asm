@@ -1,3 +1,6 @@
+;nasm -f elf64 whitespace.asm -o whitespace.o && ld whitespace.o -o whitespace
+;./whitespace hell.txt output.txt
+
 %define SYS_READ    0
 %define SYS_WRITE   1
 %define SYS_OPEN    2
@@ -41,8 +44,15 @@ section .data
 
     err_write       db "Error: write failed", 10
     err_write_len   equ $ - err_write
+    msg_sec db " seconds, ", 0
+    msg_sec_len equ $ - msg_sec -1
+    msg_ns db " nanoseconds", 10, 0
+    msg_ns_len equ $ - msg_ns - 1
 section .bss
+    timespec_start resb 16
+    timespec_end resb 16
     stat_buf        resb 144        ; sizeof(struct stat) on x86-64
+    numBuf resb 20
 
 section .text
     global _start
@@ -138,10 +148,10 @@ _start:
     xor edx, edx
     xor ecx, ecx
                                ; 0 0 1 1 1 1 1 0 1 1 1 1 1 0 0 0
-    bsf cx, ax                 ;     ^ cx = 2
-    jz .clear_whitespace       ; Next loop if register is empty
-    test cx, cx
+    tzcnt cx, ax                 ;     ^ cx = 2
+    jc .clear_whitespace       ; Next loop if register is empty
     jz .skip
+
     shr ax, cl                 ; 1 1 1 1 1 0 1 1 1 1 1 0 0 0 0 0
     test sil, sil
     jz .check
@@ -157,10 +167,10 @@ _start:
     mov edx, ecx
     pinsrb xmm5, ecx, 0        ; 2
     pshufb xmm5, xmm0          ; 02 02 02 02 02 02 02 02 02 02 02 02 02 02 02 02
-    paddusb xmm5, xmm2         ; 02 03 04 05 06 07 08 09 0a 0b 0c 0d 0e 0f 10 11
+    paddb xmm5, xmm2         ; 02 03 04 05 06 07 08 09 0a 0b 0c 0d 0e 0f 10 11
 .next:
     not ax                     ; 0 0 0 0 0 1 0 0 0 0 0 1 1 1 1 1
-    bsf cx, ax                 ;           ^ cx = 5
+    tzcnt cx, ax                 ;           ^ cx = 5
     not ax                     ; 1 1 1 1 1 0 1 1 1 1 1 0 0 0 0 0
     inc cx                     ; cx = 6
     shr ax, cl                 ; 1 1 1 1 1 0 0 0 0 0 0 0 0 0 0 0
@@ -171,22 +181,21 @@ _start:
     movdqa xmm4, xmm2          ; 00 01 02 03 04 05 06 07 08 09 0a 0b 0c 0d 0e 0f
     pcmpgtb xmm4, xmm6         ; 00 00 00 00 00 00 ff ff ff ff ff ff ff ff ff ff
     por xmm4, xmm5             ; 02 03 04 05 06 07 ff ff ff ff ff ff ff ff ff ff
-    cmp ax, 0
-    jz .end_loop
+
 .string_loop:
     xor ecx, ecx               ; 1 1 1 1 1 0 0 0 0 0 0 0 0 0 0 0
-    bsf cx, ax                 ; ^ 0 = cx
-    test cx, cx
+    tzcnt cx, ax                 ; ^ 0 = cx
+    jc .end_loop
     jz .skip2
 
     add dx, cx
     shr ax, cl
     pinsrb xmm6, ecx, 0
     pshufb xmm6, xmm0
-    paddusb xmm5, xmm6
+    paddb xmm5, xmm6
 .skip2:
     not ax                     ; 0 0 0 0 0 1 1 1 1 1 1 1 1 1 1 1
-    bsf cx, ax                 ;           ^ cx = 5
+    tzcnt cx, ax                 ;           ^ cx = 5
     not ax                     ; 1 1 1 1 1 0 0 0 0 0 0 0 0 0 0 0
 
     inc cx                     ; cx = 6
@@ -203,8 +212,7 @@ _start:
     por xmm7, xmm5             ; 02 03 04 05 06 07 08 09 0a 0b 0c 0d ff ff ff ff
     pminub xmm4, xmm7          ; 02 03 04 05 06 07 08 09 0a 0b 0c 0d ff ff ff ff
 
-    cmp ax, 0
-    jne .string_loop
+    jmp .string_loop
 .end_loop:
     lea ecx, [ebx + edx]
     cmp ecx, 17
@@ -221,6 +229,7 @@ _start:
     add r12, 16
     jmp .clear_whitespace
 .end:
+
     sub r12, rbp
     mov r13, r12
     ; ── Open output file ──────────────────────────────────────────────────────
