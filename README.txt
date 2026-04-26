@@ -1,6 +1,6 @@
 Assembly Tokenizer that can parse more than 1 gigabytes of ascii per second.
 This is relatively slow in comparison to https://github.com/WojciechMula/toys/tree/master/avx512-remove-spaces
-i am currently rethinking my implementation, and may remove this github if it seems to challenging to make something of similar quality.
+i am currently rethinking my implementation, and may remove this github if it seems too challenging to make something of similar quality.
 
 This program takes inputted text, removes whitespace, and seperates strings with a null terminator.
 
