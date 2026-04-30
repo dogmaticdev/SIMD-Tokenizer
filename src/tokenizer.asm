@@ -1,329 +1,337 @@
-;nasm -f elf64 whitespace.asm -o whitespace.o && ld whitespace.o -o whitespace
-;./whitespace hell.txt output.txt
-
-%define SYS_READ    0
-%define SYS_WRITE   1
-%define SYS_OPEN    2
-%define SYS_CLOSE   3
-%define SYS_FSTAT   5
-%define SYS_MMAP    9
-%define SYS_MUNMAP  11
-%define SYS_EXIT    60
-
-%define O_RDONLY    0
-%define O_WRONLY    1
-%define O_CREAT     0o100
-%define O_TRUNC     0o1000
-
-%define PROT_READ   1
-%define PROT_WRITE  2
-%define MAP_PRIVATE 2
-%define MAP_ANON    0x20
-
-%define STAT_SIZE_OFFSET 48     ; offset of st_size in struct stat
+;nasm -f elf64 tokenizer.asm -o tokenizer.o && ld tokenizer.o -o whitespace
+;./tokenizer hell.txt output.txt
 
 section .data
+    despace:  db 0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20
     sequence: db 0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0A, 0x0B, 0x0C, 0x0D, 0x0E, 0x0F
-    err_usage       db "Usage: whitespace <input> <output>", 10
-    err_usage_len   equ $ - err_usage
+    index0: db 0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0A, 0x0B, 0x0C, 0x0D, 0x0E, 0x0F
+    index1: db 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0A, 0x0B, 0x0C, 0x0D, 0x0E, 0x0F, 0xff
+    index2: db 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0A, 0x0B, 0x0C, 0x0D, 0x0E, 0x0F, 0xff, 0xff
+    index3: db 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0A, 0x0B, 0x0C, 0x0D, 0x0E, 0x0F, 0xff, 0xff, 0xff
+    index4: db 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0A, 0x0B, 0x0C, 0x0D, 0x0E, 0x0F, 0xff, 0xff, 0xff, 0xff
+    index5: db 0x05, 0x06, 0x07, 0x08, 0x09, 0x0A, 0x0B, 0x0C, 0x0D, 0x0E, 0x0F, 0xff, 0xff, 0xff, 0xff, 0xff
+    index6: db 0x06, 0x07, 0x08, 0x09, 0x0A, 0x0B, 0x0C, 0x0D, 0x0E, 0x0F, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff
+    index7: db 0x07, 0x08, 0x09, 0x0A, 0x0B, 0x0C, 0x0D, 0x0E, 0x0F, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff
+    index8: db 0x08, 0x09, 0x0A, 0x0B, 0x0C, 0x0D, 0x0E, 0x0F, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff
+    index9: db 0x09, 0x0A, 0x0B, 0x0C, 0x0D, 0x0E, 0x0F, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff
+    indexA: db 0x0A, 0x0B, 0x0C, 0x0D, 0x0E, 0x0F, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff
+    indexB: db 0x0B, 0x0C, 0x0D, 0x0E, 0x0F, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff
+    indexC: db 0x0C, 0x0D, 0x0E, 0x0F, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff
+    indexD: db 0x0D, 0x0E, 0x0F, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff
+    indexE: db 0x0E, 0x0F, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff
+    indexF: db 0x0F, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff
 
-    err_open_r      db "Error: cannot open input file", 10
-    err_open_r_len  equ $ - err_open_r
+    bitmask0: db 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff ;16
+    bitmask1: db 0x00, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff
+    bitmask2: db 0x00, 0x00, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff
+    bitmask3: db 0x00, 0x00, 0x00, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff
+    bitmask4: db 0x00, 0x00, 0x00, 0x00, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff
+    bitmask5: db 0x00, 0x00, 0x00, 0x00, 0x00, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff
+    bitmask6: db 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff
+    bitmask7: db 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff
+    bitmask8: db 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff
+    bitmask9: db 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff
+    bitmaskA: db 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff
+    bitmaskB: db 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xff, 0xff, 0xff, 0xff, 0xff
+    bitmaskC: db 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xff, 0xff, 0xff, 0xff
+    bitmaskD: db 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xff, 0xff, 0xff
+    bitmaskE: db 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xff, 0xff
+    bitmaskF: db 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xff
+    bitmaskG: db 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
 
-    err_open_w      db "Error: cannot open output file", 10
-    err_open_w_len  equ $ - err_open_w
+    usage:              db "Usage: whitespace <input> <output>", 10
+    usage_length:       equ $ - usage
 
-    err_fstat       db "Error: fstat failed", 10
-    err_fstat_len   equ $ - err_fstat
+    open_input:         db "Error: cannot open input file", 10
+    open_input_length:  equ $ - open_input
 
-    err_mmap        db "Error: mmap failed", 10
-    err_mmap_len    equ $ - err_mmap
+    open_output:        db "Error: cannot open output file", 10
+    open_output_length: equ $ - open_output
 
-    err_read        db "Error: read failed", 10
-    err_read_len    equ $ - err_read
+    fstat:              db "Error: fstat failed", 10
+    fstat_length:       equ $ - fstat
 
-    err_write       db "Error: write failed", 10
-    err_write_len   equ $ - err_write
-    msg_sec db " seconds, ", 0
-    msg_sec_len equ $ - msg_sec -1
-    msg_ns db " nanoseconds", 10, 0
-    msg_ns_len equ $ - msg_ns - 1
+    mmap:               db "Error: mmap failed", 10
+    mmap_length:        equ $ - mmap
+
+    write:              db "Error: write failed", 10
+    write_length:       equ $ - write
+
 section .bss
-    timespec_start resb 16
-    timespec_end resb 16
-    stat_buf        resb 144        ; sizeof(struct stat) on x86-64
-    numBuf resb 20
+    input_descriptor    resb 8
+    input_size          resb 8
+    input_pointer       resb 8
+
+    output_descriptor   resb 8
+    output_size         resb 8
+
+    stat_buffer         resb 144        ; sizeof(struct stat) on x86-64
 
 section .text
     global _start
 
 _start:
-    ; ── Check argument count ──────────────────────────────────────────────────
-    mov     rax, [rsp]              ; argc
-    cmp     rax, 3
-    jne     .usage_error
+    ; ── Check argument count ─────────────────────────────────────────────────
+    mov rax, [rsp]              ; argc
+    cmp rax, 3
+    jne .usage_error
 
-    ; ── Open input file ───────────────────────────────────────────────────────
-    mov     rax, SYS_OPEN
-    mov     rdi, [rsp+16]           ; argv[1] = input path
-    xor     rsi, rsi                ; O_RDONLY
-    xor     rdx, rdx
+    ; ── Open input file ──────────────────────────────────────────────────────
+    mov rax, 2        ; open
+    mov rdi, [rsp+16] ; argv[1] = input path
+    xor rsi, rsi      ; read only: 0
+    xor rdx, rdx
     syscall
-    cmp     rax, 0
-    jl      .open_read_error
-    mov     r12, rax                ; r12 = input fd
+    test rax, rax
+    js  .open_input_error
+    mov [input_descriptor], rax      ; r14 is input descriptor
 
-    ; ── fstat to get file size ────────────────────────────────────────────────
-    mov     rax, SYS_FSTAT
-    mov     rdi, r12                ; fd
-    mov     rsi, stat_buf           ; pointer to stat struct
+    ; ── fstat to get file size ───────────────────────────────────────────────
+    mov rax, 5 ;fstat
+    mov rdi, [input_descriptor] ; file descriptor
+    mov rsi, stat_buffer        ; pointer to stat struct
     syscall
-    cmp     rax, 0
-    jl      .fstat_error
+    test rax, rax
+    js  .fstat_error
+    mov rax, [stat_buffer + 48]
+    mov [input_size], rax
 
-    mov     r13, [stat_buf + STAT_SIZE_OFFSET]  ; r13 = file size (st_size)
-
-    ; ── mmap: allocate exactly file-size bytes ────────────────────────────────
-    ; mmap(NULL, length, PROT_READ|PROT_WRITE, MAP_PRIVATE|MAP_ANON, -1, 0)
-    mov     rax, SYS_MMAP
-    xor     rdi, rdi                ; addr = NULL (kernel chooses)
-    mov     rsi, r13                ; length = file size
-    mov     rdx, PROT_READ | PROT_WRITE
-    mov     r10, MAP_PRIVATE | MAP_ANON
-    mov     r8,  -1                 ; fd = -1 (anonymous)
-    xor     r9,  r9                 ; offset = 0
+    ; ── brk allocate ─────────────────────────────────────────────────────────
+    mov rax, 12         ; sys_brk
+    xor rdi, rdi        ; pass 0 to get current break
     syscall
-    cmp     rax, -1
-    je      .mmap_error
-    mov     rbp, rax                ; rbp = pointer to allocated buffer
+    mov [input_pointer], rax
+
+
+    mov rax, 12
+    mov rdi, [input_pointer]
+    add rdi, [input_size]
+    syscall
+
 
     ; ── Read file into buffer ─────────────────────────────────────────────────
-    mov     rax, SYS_READ
-    mov     rdi, r12                ; input fd
-    mov     rsi, rbp                ; buffer pointer
-    mov     rdx, r13                ; read exactly file-size bytes
+    mov     rax, 0
+    mov     rdi, [input_descriptor]                ; input fd
+    mov     rsi, [input_pointer]                ; buffer pointer
+    mov     rdx, [input_size]                ; read exactly file-size bytes
     syscall
-    cmp     rax, 0
-    jl      .read_error
+    test     rax, rax
+    js      .read_error
 
-
-
-    ; ── Close input file ──────────────────────────────────────────────────────
-    mov     rax, SYS_CLOSE
-    mov     rdi, r12
+    ; ── Close input file ─────────────────────────────────────────────────────
+    mov rax, 3 ;close
+    mov rdi, [input_descriptor]
     syscall
 
-    mov r12, rbp
-    mov r14, rbp
-    lea r15, [rbp + r13]
+    ;r8 write pointer
+    ;r9 read pointer
+    ;10 end pointer
+    ;rdx string length
+    ;rcx count
+    ;rax bitmask
+    ;rdi offset
+    ;rsi bool
 
-    ;rbp is the start pointer
-    ;r12 is the write pointer
-    ;r13 is the file size
-    ;r14 is read pointer
-    ;r15 is end pointer
-    pxor     xmm0, xmm0        ; Empty Register
-    mov      eax, 0x20
-    pinsrb   xmm1, eax, 0      ; 20 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
-    pshufb   xmm1, xmm0        ; 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20
-    movdqa   xmm2, [sequence]  ; 00 01 02 03 04 05 06 07 08 09 0a 0b 0c 0d 0e 0f
+    ; ── Allocate Pointers ────────────────────────────────────────────────────
+    mov r8, [input_pointer]
+    mov r9, [input_pointer]
+    mov r10, [input_pointer]
+    add r10, [input_size]
+
+
+    ; ── Setup Registers ──────────────────────────────────────────────────────
+    pxor   xmm0, xmm0       ; Empty Register
+    movdqa xmm1, [despace]  ; 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20
+    movdqa xmm2, [sequence] ; 00 01 02 03 04 05 06 07 08 09 0a 0b 0c 0d 0e 0f
+
+    xor rcx, rcx
+    xor rdx, rdx
+    xor rdi, rdi
+
+.clear:
     xor rsi, rsi
 
 .clear_whitespace:
-    cmp r14, r15
+    cmp r9, r10
     jge .end
-    movdqa xmm3, [r14]
-    add r14, 16
+
+    movdqa xmm3, [r9]
+    add r9, 16
+
     ;Example: SPACE SPACE H e l l o SPACE W o r l d SPACE SPACE SPACE
+    movdqa   xmm4, xmm3
+    pcmpgtb  xmm4, xmm1   ; 00 00 ff ff ff ff ff 00 ff ff ff ff ff 00 00 00
+    pmovmskb eax, xmm4    ; 0 0 1 1 1 1 1 0 1 1 1 1 1 0 0 0
+    pand     xmm3, xmm4   ; NULL NULL H e l l o NULL W o r l d NULL NULL NULL
 
-    movdqa xmm4, xmm3
-    pcmpgtb  xmm4, xmm1        ; 00 00 ff ff ff ff ff 00 ff ff ff ff ff 00 00 00
-    pmovmskb eax, xmm4         ; 0 0 1 1 1 1 1 0 1 1 1 1 1 0 0 0
-    pand xmm3, xmm4            ; NULL NULL H e l l o NULL W o r l d NULL NULL NULL
-
-    cmp ax, 0xFFFF             ; Move the whole register to the buffer if it is full
+    cmp      ax, 0xFFFF   ; Move the whole register to the buffer if it is full
     jz .full
 
-    xor ebx, ebx
-    xor edx, edx
-    xor ecx, ecx
-                               ; 0 0 1 1 1 1 1 0 1 1 1 1 1 0 0 0
-    tzcnt cx, ax                 ;     ^ cx = 2
-    jc .clear_whitespace       ; Next loop if register is empty
+                          ; 0 0 1 1 1 1 1 0 1 1 1 1 1 0 0 0
+    tzcnt    cx, ax       ;     ^ cx = 2
+    jc .clear_whitespace  ; Next loop if register is empty
     jz .skip
 
-    shr ax, cl                 ; 1 1 1 1 1 0 1 1 1 1 1 0 0 0 0 0
-    test sil, sil
+    shr      ax, cl       ; 1 1 1 1 1 0 1 1 1 1 1 0 0 0 0 0
+    test     sil, sil
     jz .check
-    xor sil, sil
-    dec ecx
-    inc ebx
-    test cx, cx
+    xor      sil, sil
+    dec      cx
+    inc      dx
+    test     cx, cx
     jnz .check
+
 .skip:
-    movdqa xmm5, xmm2
+    movdqa   xmm5, xmm2 ; 00 01 02 03 04 05 06 07 08 09 0a 0b 0c 0d 0e 0f
     jmp .next
+
 .check:
-    mov edx, ecx
-    pinsrb xmm5, ecx, 0        ; 2
-    pshufb xmm5, xmm0          ; 02 02 02 02 02 02 02 02 02 02 02 02 02 02 02 02
-    paddb xmm5, xmm2         ; 02 03 04 05 06 07 08 09 0a 0b 0c 0d 0e 0f 10 11
+    mov      edi, ecx
+    shl      ecx, 4
+    movdqa   xmm5, [index0 + rcx]   ; 02 03 04 05 06 07 08 09 0a 0b 0c 0d 0e 0f 10 11
 .next:
-    not ax                     ; 0 0 0 0 0 1 0 0 0 0 0 1 1 1 1 1
-    tzcnt cx, ax                 ;           ^ cx = 5
-    not ax                     ; 1 1 1 1 1 0 1 1 1 1 1 0 0 0 0 0
-    inc cx                     ; cx = 6
-    shr ax, cl                 ; 1 1 1 1 1 0 0 0 0 0 0 0 0 0 0 0
-    add ebx, ecx               ; bx = 6
-    dec cx
-    pinsrb xmm6, ecx, 0
-    pshufb xmm6, xmm0          ; 05 05 05 05 05 05 05 05 05 05 05 05 05 05 05 05
-    movdqa xmm4, xmm2          ; 00 01 02 03 04 05 06 07 08 09 0a 0b 0c 0d 0e 0f
-    pcmpgtb xmm4, xmm6         ; 00 00 00 00 00 00 ff ff ff ff ff ff ff ff ff ff
-    por xmm4, xmm5             ; 02 03 04 05 06 07 ff ff ff ff ff ff ff ff ff ff
+    not      ax                     ; 0 0 0 0 0 1 0 0 0 0 0 1 1 1 1 1
+    tzcnt    cx, ax                 ;           ^ cx = 5
+    not      ax                     ; 1 1 1 1 1 0 1 1 1 1 1 0 0 0 0 0
+
+    inc      cx                     ; cx = 6
+    shr      ax, cl                 ; 1 1 1 1 1 0 0 0 0 0 0 0 0 0 0 0
+    add      dx, cx                 ; dx = 6
+    dec      cx
+    shl      ecx, 4
+    movdqa   xmm4, [bitmask0 + rcx] ; 00 00 00 00 00 00 ff ff ff ff ff ff ff ff ff ff
+    por      xmm4, xmm5             ; 02 03 04 05 06 07 ff ff ff ff ff ff ff ff ff ff
 
 .string_loop:
-    xor ecx, ecx               ; 1 1 1 1 1 0 0 0 0 0 0 0 0 0 0 0
-    tzcnt cx, ax                 ; ^ 0 = cx
+    xor      ecx, ecx               ; 1 1 1 1 1 0 0 0 0 0 0 0 0 0 0 0
+    tzcnt    cx, ax                 ; ^ 0 = cx
     jc .end_loop
     jz .skip2
 
-    add dx, cx
-    shr ax, cl
-    pinsrb xmm6, ecx, 0
-    pshufb xmm6, xmm0
-    paddb xmm5, xmm6
+    add      di, cx
+    shr      ax, cl
+    mov      ecx, edi
+    shl      ecx, 4
+    movdqa   xmm5, [index0 + rcx]   ; 02 03 04 05 06 07 08 09 0a 0b 0c 0d 0e 0f 10 11
+
 .skip2:
-    not ax                     ; 0 0 0 0 0 1 1 1 1 1 1 1 1 1 1 1
-    tzcnt cx, ax                 ;           ^ cx = 5
-    not ax                     ; 1 1 1 1 1 0 0 0 0 0 0 0 0 0 0 0
+    not      ax                     ; 0 0 0 0 0 1 1 1 1 1 1 1 1 1 1 1
+    tzcnt    cx, ax                 ;           ^ cx = 5
+    not      ax                     ; 1 1 1 1 1 0 0 0 0 0 0 0 0 0 0 0
 
-    inc cx                     ; cx = 6
-    shr ax, cl                 ; 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
-    add bx, cx                 ; bx = 12
-    mov cx, bx
-    dec cx                     ; cx = 11 = 0b
+    inc      cx                     ; cx = 6
+    shr      ax, cl                 ; 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+    add      dx, cx                 ; dx = 12
+    mov      cx, dx
+    dec      cx                     ; cx = 11 = 0b
 
-    pinsrb xmm6, ecx, 0        ; 0b 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
-    pshufb xmm6, xmm0          ; 0b 0b 0b 0b 0b 0b 0b 0b 0b 0b 0b 0b 0b 0b 0b 0b
-    movdqa xmm7, xmm2          ; 00 01 02 03 04 05 06 07 08 09 0a 0b 0c 0d 0e 0f
-    pcmpgtb xmm7, xmm6         ; 00 00 00 00 00 00 00 00 00 00 00 00 ff ff ff ff
-
-    por xmm7, xmm5             ; 02 03 04 05 06 07 08 09 0a 0b 0c 0d ff ff ff ff
-    pminub xmm4, xmm7          ; 02 03 04 05 06 07 08 09 0a 0b 0c 0d ff ff ff ff
+    shl ecx, 4
+    movdqa   xmm6, [bitmask0 + rcx] ; 00 00 00 00 00 00 00 00 00 00 00 ff ff ff ff ff
+    por      xmm6, xmm5             ; 02 03 04 05 06 07 08 09 0A 0B 0C ff ff ff ff ff
+    pminub   xmm4, xmm6             ; 02 03 04 05 06 07 08 09 0A 0B 0C ff ff ff ff ff
 
     jmp .string_loop
+
 .end_loop:
-    lea ecx, [ebx + edx]
-    cmp ecx, 17
+    lea      ecx, [edx + edi]
+    xor      edi, edi
+    cmp      ecx, 17
     setz sil                   ; dl = 0
-    sub ebx, esi               ; ebx = 12
+    sub      edx, esi               ; edx = 12
 
-    pshufb xmm3, xmm4
-    movdqu [r12], xmm3
-    add r12, rbx
+    pshufb   xmm3, xmm4
+    movdqu   [r8], xmm3
+    add      r8, rdx
+    xor      edx, edx
     jmp .clear_whitespace
+
 .full:
-    movdqu [r12], xmm3
-    mov rsi, 1
-    add r12, 16
+    movdqu   [r8], xmm3
+    mov      rsi, 1
+    add      r8, 16
     jmp .clear_whitespace
-.end:
 
-    sub r12, rbp
-    mov r13, r12
-    ; ── Open output file ──────────────────────────────────────────────────────
-    mov     rax, SYS_OPEN
-    mov     rdi, [rsp+24]           ; argv[2] = output path
-    mov     rsi, O_WRONLY | O_CREAT | O_TRUNC
-    mov     rdx, 0o644              ; rw-r--r--
+.end:
+    ; ── Get Output Size ──────────────────────────────────────────────────────
+    sub r8, [input_pointer]
+    mov [output_size], r8
+
+    ; ── Open output file ─────────────────────────────────────────────────────
+    mov     rax, 2 ;open
+    mov     rdi, [rsp+24] ; argv[2] = file name
+    mov     rsi, 0o1101   ; truncate: 0o1000, create: 0o100, write only: 1
+    mov     rdx, 0o644    ; rw-r--r-- r=4, w=2, 4+2=6, 4, 4
     syscall
     cmp     rax, 0
-    jl      .open_write_error
-    mov     r12, rax                ; r12 = output fd (reuse)
+    jl      .open_output_error
+    mov     [output_descriptor], rax
 
-    ; ── Write buffer to output file ───────────────────────────────────────────
-    mov     rax, SYS_WRITE
-    mov     rdi, r12
-    mov     rsi, rbp                ; buffer pointer
-    mov     rdx, r13                ; bytes to write
+    ; ── Write buffer to output file ──────────────────────────────────────────
+    mov     rax, 1 ;write
+    mov     rdi, [output_descriptor] ; file descriptor
+    mov     rsi, [input_pointer]     ; buffer pointer
+    mov     rdx, [output_size]       ; bytes to write
     syscall
     cmp     rax, 0
     jl      .write_error
 
-    ; ── Close output file ─────────────────────────────────────────────────────
-    mov     rax, SYS_CLOSE
-    mov     rdi, r12
+    ; ── Close output file ────────────────────────────────────────────────────
+    mov     rax, 3 ;close
+    mov     rdi, [output_descriptor]
     syscall
 
-    ; ── munmap: free the allocated memory ─────────────────────────────────────
-    mov     rax, SYS_MUNMAP
-    mov     rdi, r14                ; buffer pointer
-    mov     rsi, r13                ; length
+    ; ── munmap: free the allocated memory ────────────────────────────────────
+    mov rax, 12
+    mov rdi, [input_pointer]
     syscall
 
-    ; ── Exit success ──────────────────────────────────────────────────────────
-    mov     rax, SYS_EXIT
+
+    ; ── Exit success ─────────────────────────────────────────────────────────
+    mov     rax, 60 ;exit
     xor     rdi, rdi
     syscall
 
-; ── Error handlers ────────────────────────────────────────────────────────────
+    ; ── Error handlers ───────────────────────────────────────────────────────
 .usage_error:
-    mov     rax, SYS_WRITE
-    mov     rdi, 2
-    mov     rsi, err_usage
-    mov     rdx, err_usage_len
-    syscall
-    jmp     .exit_fail
+    mov     rsi, usage
+    mov     rdx, usage_length
+    jmp .print_error
 
-.open_read_error:
-    mov     rax, SYS_WRITE
-    mov     rdi, 2
-    mov     rsi, err_open_r
-    mov     rdx, err_open_r_len
-    syscall
-    jmp     .exit_fail
+.open_input_error:
+    mov     rsi, open_input
+    mov     rdx, open_input_length
+    jmp .print_error
 
 .fstat_error:
-    mov     rax, SYS_WRITE
-    mov     rdi, 2
-    mov     rsi, err_fstat
-    mov     rdx, err_fstat_len
-    syscall
-    jmp     .exit_fail
+    mov     rsi, fstat
+    mov     rdx, fstat_length
+    jmp .print_error
 
 .mmap_error:
-    mov     rax, SYS_WRITE
-    mov     rdi, 2
-    mov     rsi, err_mmap
-    mov     rdx, err_mmap_len
-    syscall
-    jmp     .exit_fail
+    mov     rsi, mmap
+    mov     rdx, mmap_length
+    jmp .print_error
+
+.open_output_error:
+    mov     rsi, open_output
+    mov     rdx, open_output_length
+    jmp .print_error
 
 .read_error:
-    mov     rax, SYS_WRITE
-    mov     rdi, 2
-    mov     rsi, err_read
-    mov     rdx, err_read_len
-    syscall
-    jmp     .exit_fail
-
-.open_write_error:
-    mov     rax, SYS_WRITE
-    mov     rdi, 2
-    mov     rsi, err_open_w
-    mov     rdx, err_open_w_len
-    syscall
-    jmp     .exit_fail
+    mov     rsi, write
+    mov     rdx, write_length
+    jmp .print_error
 
 .write_error:
-    mov     rax, SYS_WRITE
-    mov     rdi, 2
-    mov     rsi, err_write
-    mov     rdx, err_write_len
+    mov     rsi, write
+    mov     rdx, write_length
+
+.print_error:
+    mov rax, 1; write
+    mov rdi, 2; terminal
     syscall
 
-.exit_fail:
-    mov     rax, SYS_EXIT
-    mov     rdi, 1
+.exit_error:
+    mov     rax, 60 ;exit
+    mov     rdi, 1  ;error
     syscall
