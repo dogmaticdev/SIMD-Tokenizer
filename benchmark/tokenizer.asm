@@ -132,6 +132,9 @@ _start:
     mov rdi, [input_descriptor]
     syscall
 
+    movzx   rax, byte [input_pointer]      ; force cpu to stop optimizing
+    test    rax, rax
+
     ;  ── Start Time ──────────────────────────────────────────────────────────
     mov rax, 228
     mov rdi, 1
