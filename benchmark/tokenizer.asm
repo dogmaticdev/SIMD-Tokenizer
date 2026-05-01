@@ -1,5 +1,5 @@
-;nasm -f elf64 tokenizer.asm -o tokenizer.o && ld tokenizer.o -o whitespace
-;./tokenizer hell.txt output.txt
+;nasm -f elf64 tokenizer.asm -o tokenizer.o && ld tokenizer.o -o tokenizer
+;./tokenizer input.txt output.txt
 
 section .data
     despace:  db 0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20
@@ -177,8 +177,8 @@ _start:
     movdqa   xmm4, xmm3
     pcmpgtb  xmm4, xmm1   ; 00 00 ff ff ff ff ff 00 ff ff ff ff ff 00 00 00
     pmovmskb eax, xmm4    ; 0 0 1 1 1 1 1 0 1 1 1 1 1 0 0 0
-    pand     xmm3, xmm4   ; NULL NULL H e l l o NULL W o r l d NULL NULL NULL
-
+    pand     xmm4, xmm3   ; NULL NULL H e l l o NULL W o r l d NULL NULL NULL
+    prefetchnta [r9]
     cmp      ax, 0xFFFF   ; Move the whole register to the buffer if it is full
     jz .full
 
@@ -214,8 +214,8 @@ _start:
     add      dx, cx                 ; dx = 6
     dec      cx
     shl      ecx, 4
-    movdqa   xmm4, [bitmask0 + rcx] ; 00 00 00 00 00 00 ff ff ff ff ff ff ff ff ff ff
-    por      xmm4, xmm5             ; 02 03 04 05 06 07 ff ff ff ff ff ff ff ff ff ff
+    movdqa   xmm0, [bitmask0 + rcx] ; 00 00 00 00 00 00 ff ff ff ff ff ff ff ff ff ff
+
 
 .string_loop:
     xor      ecx, ecx               ; 1 1 1 1 1 0 0 0 0 0 0 0 0 0 0 0
@@ -227,7 +227,8 @@ _start:
     shr      ax, cl
     mov      ecx, edi
     shl      ecx, 4
-    movdqa   xmm5, [index0 + rcx]   ; 02 03 04 05 06 07 08 09 0a 0b 0c 0d 0e 0f 10 11
+    movdqa   xmm6, [index0 + rcx]   ; 02 03 04 05 06 07 08 09 0a 0b 0c 0d 0e 0f 10 11
+    pblendvb xmm5, xmm6
 
 .skip2:
     not      ax                     ; 0 0 0 0 0 1 1 1 1 1 1 1 1 1 1 1
@@ -241,11 +242,11 @@ _start:
     dec      cx                     ; cx = 11 = 0b
 
     shl ecx, 4
-    movdqa   xmm6, [bitmask0 + rcx] ; 00 00 00 00 00 00 00 00 00 00 00 ff ff ff ff ff
-    por      xmm6, xmm5             ; 02 03 04 05 06 07 08 09 0A 0B 0C ff ff ff ff ff
-    pminub   xmm4, xmm6             ; 02 03 04 05 06 07 08 09 0A 0B 0C ff ff ff ff ff
+    movdqa   xmm0, [bitmask0 + rcx] ; 00 00 00 00 00 00 00 00 00 00 00 ff ff ff ff ff
 
     jmp .string_loop
+
+
 
 .end_loop:
     lea      ecx, [edx + edi]
@@ -254,8 +255,8 @@ _start:
     setz sil                   ; dl = 0
     sub      edx, esi               ; edx = 12
 
-    pshufb   xmm3, xmm4
-    movdqu   [r8], xmm3
+    pshufb   xmm4, xmm5
+    movdqu   [r8], xmm4
     add      r8, rdx
     xor      edx, edx
     jmp .clear_whitespace
